@@ -1,19 +1,30 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const app = express();
+const bodyParser = require('body-parser');
 
 const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN, { webHook: { port: 5001 } });
+const bot = new TelegramBot(TOKEN);
+app.use(bodyParser.json());
 
-// URL вебхука — заменим чуть позже
-const WEBHOOK_URL = 'https://ВАШ_ХОСТИНГ/api/bot'; // <== заменим позже
+// Роут для Telegram Webhook
+app.post(`/api/bot/${TOKEN}`, (req, res) => {
+  const message = req.body.message;
 
-bot.setWebHook(`${WEBHOOK_URL}/${TOKEN}`);
+  if (message) {
+    const chatId = message.chat.id;
+    const text = message.text;
 
-// Базовый обработчик
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Добро пожаловать в HealthPulse 🏋️‍♂️ Напиши /register для начала!');
+    console.log("📩 Сообщение от пользователя:", chatId, text);
+
+    if (text === '/start') {
+      bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Напиши /register чтобы начать!');
+    } else {
+      bot.sendMessage(chatId, 'Я тебя услышал 🤖 Ожидай боевых функций...');
+    }
+  }
+
+  res.sendStatus(200);
 });
 
-module.exports = bot;
+module.exports = app;
