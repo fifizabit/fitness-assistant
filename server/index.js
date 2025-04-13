@@ -8,7 +8,7 @@ const app = express();
 // Telegram Bot Init
 const TelegramBot = require('node-telegram-bot-api');
 const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN);
+const bot = new TelegramBot(TOKEN, { polling: false }); // polling отключён
 
 // Middleware
 app.use(bodyParser.json());
@@ -40,6 +40,7 @@ app.get('/webapp', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// 🧠 Fallback для React Router
 app.get('/webapp/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -49,4 +50,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Сервер HealthPulse запущен на порту ${PORT}`);
 });
-
