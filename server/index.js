@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const path = require('path'); // 🆕 для выдачи WebApp
+const path = require('path'); // 📦 Для отдачи WebApp
 
 const TelegramBot = require('node-telegram-bot-api');
 const User = require('./models/User');
@@ -15,19 +15,17 @@ const profileRoutes = require('./routes/profile');
 const app = express();
 app.use(bodyParser.json());
 
-// 🧠 Подключение API маршрутов
+// ✅ API маршруты
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 
-// 🧱 Подключение статики WebApp
+// ✅ Отдача фронта (WebApp)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// 🌐 Отдача index.html при заходе на /webapp
 app.get('/webapp', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 🤖 Telegram Webhook
+// ✅ Telegram Webhook
 const TOKEN = process.env.BOT_TOKEN;
 const bot = new TelegramBot(TOKEN);
 const users = {};
@@ -40,7 +38,7 @@ app.post('/bot', async (req, res) => {
   const text = message.text.trim();
 
   if (text === '/start') {
-    bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Нажми на кнопку WebApp внизу, чтобы начать!');
+    bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Нажми кнопку "HealthPulse" снизу!');
     return res.sendStatus(200);
   }
 
@@ -56,16 +54,11 @@ app.post('/bot', async (req, res) => {
     if (step === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(text)) {
-        bot.sendMessage(chatId, '❌ Email неверен. Попробуйте ещё раз:');
+        bot.sendMessage(chatId, '❌ Email неверен. Попробуй ещё раз:');
         return res.sendStatus(200);
       }
 
-      users[chatId] = {
-        ...users[chatId],
-        email: text,
-        step: 'password'
-      };
-
+      users[chatId] = { ...users[chatId], email: text, step: 'password' };
       bot.sendMessage(chatId, '🔐 Введите пароль (мин. 8 символов, 1 цифра, 1 спецсимвол):');
       return res.sendStatus(200);
     }
@@ -73,7 +66,7 @@ app.post('/bot', async (req, res) => {
     if (step === 'password') {
       const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
       if (!passwordRegex.test(text)) {
-        bot.sendMessage(chatId, '❌ Пароль слишком простой. Попробуйте ещё раз:');
+        bot.sendMessage(chatId, '❌ Пароль слишком простой. Попробуй снова:');
         return res.sendStatus(200);
       }
 
@@ -108,7 +101,7 @@ app.post('/bot', async (req, res) => {
   return res.sendStatus(200);
 });
 
-// 🚀 Запуск сервера + MongoDB
+// ✅ Подключение к MongoDB
 const PORT = process.env.PORT || 5000;
 
 mongoose
