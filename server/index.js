@@ -14,7 +14,6 @@ const bot = new TelegramBot(TOKEN);
 app.use(bodyParser.json());
 
 // ======== API ROUTES ==========
-// Пример: маршрут Telegram
 app.post('/bot', (req, res) => {
   const message = req.body.message;
 
@@ -41,7 +40,6 @@ app.get('/webapp', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Fallback (на случай перехода по роутам React внутри SPA)
 app.get('/webapp/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -51,3 +49,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Сервер HealthPulse запущен на порту ${PORT}`);
 });
+
