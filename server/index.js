@@ -1,11 +1,12 @@
 require('dotenv').config();
-const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const path = require('path'); // 🆕 для выдачи WebApp
 
+const TelegramBot = require('node-telegram-bot-api');
 const User = require('./models/User');
 const UserProfile = require('./models/UserProfile');
 const authRoutes = require('./routes/auth');
@@ -14,25 +15,32 @@ const profileRoutes = require('./routes/profile');
 const app = express();
 app.use(bodyParser.json());
 
-const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN);
-const users = {}; // временное хранилище регистрации
-
-// API маршруты
+// 🧠 Подключение API маршрутов
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 
-// Telegram webhook
+// 🧱 Подключение статики WebApp
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 🌐 Отдача index.html при заходе на /webapp
+app.get('/webapp', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 🤖 Telegram Webhook
+const TOKEN = process.env.BOT_TOKEN;
+const bot = new TelegramBot(TOKEN);
+const users = {};
+
 app.post('/bot', async (req, res) => {
   const message = req.body.message;
   if (!message || !message.text) return res.sendStatus(200);
 
   const chatId = message.chat.id;
   const text = message.text.trim();
-  console.log("📩 Сообщение:", chatId, text);
 
   if (text === '/start') {
-    bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Напиши /register чтобы начать!');
+    bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Нажми на кнопку WebApp внизу, чтобы начать!');
     return res.sendStatus(200);
   }
 
@@ -48,14 +56,14 @@ app.post('/bot', async (req, res) => {
     if (step === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(text)) {
-        bot.sendMessage(chatId, '❌ Email неверен. Попробуй снова:');
+        bot.sendMessage(chatId, '❌ Email неверен. Попробуйте ещё раз:');
         return res.sendStatus(200);
       }
 
       users[chatId] = {
         ...users[chatId],
         email: text,
-        step: 'password',
+        step: 'password'
       };
 
       bot.sendMessage(chatId, '🔐 Введите пароль (мин. 8 символов, 1 цифра, 1 спецсимвол):');
@@ -65,7 +73,7 @@ app.post('/bot', async (req, res) => {
     if (step === 'password') {
       const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
       if (!passwordRegex.test(text)) {
-        bot.sendMessage(chatId, '❌ Пароль слишком простой. Попробуй снова:');
+        bot.sendMessage(chatId, '❌ Пароль слишком простой. Попробуйте ещё раз:');
         return res.sendStatus(200);
       }
 
@@ -84,6 +92,7 @@ app.post('/bot', async (req, res) => {
         const hashedPassword = await bcrypt.hash(text, salt);
 
         await User.create({ telegramId, email, password: hashedPassword });
+
         bot.sendMessage(chatId, '✅ Регистрация успешна!');
       } catch (err) {
         console.error('❌ Ошибка регистрации:', err);
@@ -99,7 +108,7 @@ app.post('/bot', async (req, res) => {
   return res.sendStatus(200);
 });
 
-// Подключение к MongoDB
+// 🚀 Запуск сервера + MongoDB
 const PORT = process.env.PORT || 5000;
 
 mongoose
