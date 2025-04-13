@@ -5,7 +5,8 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 
-const User = require('./models/User'); // Модель пользователя
+const User = require('./models/User');
+const authRoutes = require('./routes/auth'); // ✅ подключаем логин
 
 const app = express();
 app.use(bodyParser.json());
@@ -13,39 +14,36 @@ app.use(bodyParser.json());
 const TOKEN = process.env.BOT_TOKEN;
 const bot = new TelegramBot(TOKEN);
 
-const users = {}; // временное хранилище шагов регистрации
+const users = {}; // временное хранилище регистрации
 
-// Telegram webhook роут
+// 🔐 Web API
+app.use('/api/auth', authRoutes);
+
+// 📩 Telegram webhook
 app.post('/bot', async (req, res) => {
   const message = req.body.message;
 
-  if (!message || !message.text) {
-    return res.sendStatus(200); // Пустое сообщение или callback — игнорим
-  }
+  if (!message || !message.text) return res.sendStatus(200);
 
   const chatId = message.chat.id;
   const text = message.text.trim();
 
-  console.log("📩 Получено сообщение:", chatId, text);
+  console.log("📩 Сообщение:", chatId, text);
 
-  // Шаг 0: /start
   if (text === '/start') {
     bot.sendMessage(chatId, '👋 Привет! Добро пожаловать в HealthPulse 💪 Напиши /register чтобы начать!');
     return res.sendStatus(200);
   }
 
-  // Шаг 1: /register
   if (text === '/register') {
     users[chatId] = { step: 'email' };
     bot.sendMessage(chatId, '📧 Введите ваш email:');
     return res.sendStatus(200);
   }
 
-  // Если пользователь в процессе регистрации
   if (users[chatId]) {
     const step = users[chatId].step;
 
-    // Email
     if (step === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(text)) {
@@ -53,18 +51,16 @@ app.post('/bot', async (req, res) => {
         return res.sendStatus(200);
       }
 
-      // Сохраняем ДО ответа
       users[chatId] = {
         ...users[chatId],
         email: text,
-        step: 'password'
+        step: 'password',
       };
 
       bot.sendMessage(chatId, '🔐 Введите пароль (мин. 8 символов, 1 цифра, 1 спецсимвол):');
       return res.sendStatus(200);
     }
 
-    // Пароль
     if (step === 'password') {
       const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
       if (!passwordRegex.test(text)) {
@@ -103,12 +99,11 @@ app.post('/bot', async (req, res) => {
     }
   }
 
-  // Неизвестные команды
   bot.sendMessage(chatId, '🤖 Напиши /register, чтобы начать регистрацию.');
   return res.sendStatus(200);
 });
 
-// Подключение и запуск сервера
+// Старт сервера + MongoDB
 const PORT = process.env.PORT || 5000;
 
 mongoose
@@ -120,5 +115,5 @@ mongoose
     });
   })
   .catch((err) => {
-    console.error('❌ Ошибка подключения к MongoDB:', err);
+    console.error('❌ Ошибка MongoDB:', err);
   });
